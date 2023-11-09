@@ -6,7 +6,6 @@ using RealDealsAPI.Data;
 using RealDealsAPI.DTOs;
 using RealDealsAPI.Entities;
 using RealDealsAPI.Services;
-using SQLitePCL;
 
 namespace RealDealsAPI.Controllers
 {

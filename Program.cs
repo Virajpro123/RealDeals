@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Identity;
+using Hangfire;
+using Hangfire.SQLite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using RealDealsAPI.Comparers;
 using RealDealsAPI.Data;
 using RealDealsAPI.Helpers;
@@ -22,6 +22,16 @@ builder.Services.AddDbContext<MovieContext>(options =>
 builder.Services.AddScoped<MovieDataAccessService>();
 builder.Services.AddScoped<MovieDTOComparer>();
 
+//Hangfire Config
+var sqliteOptions = new SQLiteStorageOptions();
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSQLiteStorage("Filename=store.db;", sqliteOptions)
+);
+builder.Services.AddHangfireServer();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -34,6 +44,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseHangfireDashboard();
+
+//Save Movies to DB Scheduled Task
+RecurringJob.AddOrUpdate<MovieDataAccessService>("update movies database scheduled task", task => task.SaveMoviesToDBTask(), Cron.Hourly);
 
 app.MapControllers();
 

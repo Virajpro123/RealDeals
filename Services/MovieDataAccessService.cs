@@ -1,11 +1,8 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using RealDealsAPI.Comparers;
 using RealDealsAPI.Data;
 using RealDealsAPI.DTOs;
 using RealDealsAPI.Entities;
-using System.Linq;
-using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace RealDealsAPI.Services
@@ -49,7 +46,7 @@ namespace RealDealsAPI.Services
                     movie.ProviderInfo = "CinemaWorld";
                     var movieEntity = _mapper.Map<Movie>(movie);
                     return movieEntity;
-                }).ToList();                                             
+                }).ToList();
 
                 if (await AddOrUpdateRangeMovies(filmWorldMovies.Concat(cinemaWorldMovies.ToList())))
                 {
@@ -57,7 +54,7 @@ namespace RealDealsAPI.Services
                 }
                 else
                 {
-                    _logger.LogError($"Movies DB update task was not successful : No entries were added");
+                    _logger.LogInformation($"Movies DB update task was successful : No new entries were added");
                 }
             }
             catch (Exception ex)
@@ -84,49 +81,53 @@ namespace RealDealsAPI.Services
                 }
             }
             return await _context.SaveChangesAsync() > 0;
-         }
+        }
 
 
         private async Task<MoviesDto> GetMoviesFromEndPoint(string endpoint)
         {
+            int maxRetries = 3;
+            int retryDelayMilliseconds = 3000;
             MoviesDto movieList = new MoviesDto();
             using (HttpClient client = new HttpClient())
             {
-                try
+                client.BaseAddress = new Uri(endpoint);
+
+                // Set the Authorization header with the bearer token
+                client.DefaultRequestHeaders.Add("x-access-token", _apiKey);
+                for (int retryCount = 0; retryCount < maxRetries; retryCount++)
                 {
-                    client.BaseAddress = new Uri(endpoint);
-
-                    // Set the Authorization header with the bearer token
-                    client.DefaultRequestHeaders.Add("x-access-token", _apiKey);
-
-                    HttpResponseMessage response = await client.GetAsync("movies");
-
-                    if (response.IsSuccessStatusCode)
+                    try
                     {
-                        string? responseContent = await response.Content.ReadAsStringAsync();
+                        HttpResponseMessage response = await client.GetAsync("movies");
 
-                        if (responseContent is not null)
+                        if (response.IsSuccessStatusCode)
                         {
-                            movieList = JsonSerializer.Deserialize<MoviesDto>(responseContent)!;
-                        }
-                        else
-                        {
-                            _logger.LogError($"Movies Retrieval Failed from {endpoint}");
-                            throw new Exception($"Movies Retrieval Failed from {endpoint}");
+                            string? responseContent = await response.Content.ReadAsStringAsync();
+
+                            if (responseContent is not null)
+                            {
+                                movieList = JsonSerializer.Deserialize<MoviesDto>(responseContent)!;
+                                break;
+                            }
+                            else
+                            {
+                                _logger.LogError($"No movies returned from {endpoint}");
+                            }
                         }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _logger.LogError($"Movies Retrieval Failed from {endpoint}");
-                        throw new Exception($"Movies Retrieval Failed from {endpoint}");
+                        _logger.LogError(ex, ex.Message);
+                        if (retryCount < maxRetries - 1)
+                        {
+                            // If not the last retry, delay before retrying
+                            _logger.LogInformation($"Retrying fetching movies from {endpoint} in {retryDelayMilliseconds / 1000} seconds...");
+                            Thread.Sleep(retryDelayMilliseconds);
+                        }
                     }
-                    return movieList;
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, ex.Message);
-                    throw new Exception($"Movies Retrieval Failed from {endpoint} : {ex.Message}");
-                }
+                return movieList;
             }
         }
     }
