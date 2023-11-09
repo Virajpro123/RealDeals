@@ -32,6 +32,8 @@ builder.Services.AddHangfire(configuration => configuration
 );
 builder.Services.AddHangfireServer();
 
+builder.Services.AddCors();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -42,6 +44,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(opt =>
+{
+    opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:3000");
+});
 
 app.UseAuthorization();
 
