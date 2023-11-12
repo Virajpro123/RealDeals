@@ -1,6 +1,6 @@
 ﻿namespace RealDealsAPI.DTOs
 {
-    public class CatalogMovie
+    public class MovieCatalogDTO
     {
         public required string Title { get; set; }
         public string? Year { get; set; }

@@ -1,4 +1,6 @@
-﻿namespace RealDealsAPI.Entities
+﻿using RealDealsAPI.DTOs;
+
+namespace RealDealsAPI.Entities
 {
     public class Movie
     {
@@ -8,6 +10,7 @@
         public string? Type { get; set; }
         public string? Poster { get; set; }
         public string? ProviderInfo { get; set; }
+        public MovieDetails? movieDetails { get; set; }
 
     }
 }

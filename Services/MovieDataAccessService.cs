@@ -16,6 +16,8 @@ namespace RealDealsAPI.Services
         private readonly MovieDTOComparer _movieDTOComparer;
         private readonly IMapper _mapper;
         private readonly MovieContext _context;
+        private readonly int _retryDelayMilliseconds;
+        private readonly int _maxRetries;
 
         public MovieDataAccessService(IConfiguration config, ILogger<MovieDataAccessService> logger, MovieDTOComparer movieDTOComparer, IMapper mapper, MovieContext context)
         {
@@ -25,6 +27,8 @@ namespace RealDealsAPI.Services
             _movieDTOComparer = movieDTOComparer;
             _mapper = mapper;
             _context = context;
+            _maxRetries = Int32.Parse(_config["MovieDataAccess:maxRetries"]!);
+            _retryDelayMilliseconds = Int32.Parse(_config["MovieDataAccess:retryDelayMilliseconds"]!);
         }
 
         public async Task SaveMoviesToDBTask()
@@ -48,14 +52,11 @@ namespace RealDealsAPI.Services
                     return movieEntity;
                 }).ToList();
 
-                if (await AddOrUpdateRangeMovies(filmWorldMovies.Concat(cinemaWorldMovies.ToList())))
-                {
-                    _logger.LogInformation($"Movies DB update task was successful");
-                }
-                else
-                {
-                    _logger.LogInformation($"Movies DB update task was successful : No new entries were added");
-                }
+                await AppendMovieDetails(CinemaWorldApiEndpoint, cinemaWorldMovies);
+                await AppendMovieDetails(FilmWorldApiEndpoint, filmWorldMovies);
+
+                await AddOrUpdateRangeMovies(filmWorldMovies.Concat(cinemaWorldMovies.ToList()));
+                _logger.LogInformation($"Movies DB update task was successful");
             }
             catch (Exception ex)
             {
@@ -63,31 +64,71 @@ namespace RealDealsAPI.Services
             }
         }
 
-        private async Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies)
+        public async Task AppendMovieDetails(string endpoint, List<Movie> movies)
         {
-            foreach (var movie in movies)
-            {
-                var existingEntry = _context.Movies.Find(movie.ID);
+            _logger.LogInformation($"Starting retrieving Movie Details for movies from {endpoint}");
 
-                if (existingEntry == null)
+            foreach(Movie movie in movies)
+            {
+                var movieDetails = await GetMovieDetailsFromEndPoint(endpoint, movie.ID);
+                if (movieDetails != null)
                 {
-                    _context.Movies.Add(movie);
-                    _logger.LogInformation($"Newly added {movie.Title}");
-                }
-                else
-                {
-                    _context.Entry(existingEntry).CurrentValues.SetValues(movie);
-                    _logger.LogInformation($"Updated movie entry of {movie.Title}");
+                    movie.movieDetails = _mapper.Map<MovieDetails>(movieDetails);
+                    _logger.LogInformation($"Retrieved Movie Details for movie {movie.Title} from {endpoint}");
                 }
             }
-            return await _context.SaveChangesAsync() > 0;
         }
+              
+
+        public async Task<MovieDetailsDto> GetMovieDetailsFromEndPoint(string endpoint, string movieID)
+        {
+            MovieDetailsDto movieDetails = new MovieDetailsDto();
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(endpoint);
+
+                // Set the Authorization header with the bearer token
+                client.DefaultRequestHeaders.Add("x-access-token", _apiKey);
+                for (int retryCount = 0; retryCount < _maxRetries!; retryCount++)
+                {
+                    try
+                    {
+                        HttpResponseMessage response = await client.GetAsync($"movie/{movieID}");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            string? responseContent = await response.Content.ReadAsStringAsync();
+
+                            if (responseContent is not null)
+                            {
+                                movieDetails = JsonSerializer.Deserialize<MovieDetailsDto>(responseContent)!;
+                                break;
+                            }
+                            else
+                            {
+                                _logger.LogError($"No movie details were returned for movie {movieID} from {endpoint}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        if (retryCount < _maxRetries - 1)
+                        {
+                            // If not the last retry, delay before retrying
+                            _logger.LogInformation($"Retrying fetching movie {movieID} from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
+                            Thread.Sleep(_retryDelayMilliseconds);
+                        }
+                    }
+                }
+            }
+            return movieDetails;
+        }
+
 
 
         private async Task<MoviesDto> GetMoviesFromEndPoint(string endpoint)
         {
-            int maxRetries = 3;
-            int retryDelayMilliseconds = 3000;
             MoviesDto movieList = new MoviesDto();
             using (HttpClient client = new HttpClient())
             {
@@ -95,7 +136,7 @@ namespace RealDealsAPI.Services
 
                 // Set the Authorization header with the bearer token
                 client.DefaultRequestHeaders.Add("x-access-token", _apiKey);
-                for (int retryCount = 0; retryCount < maxRetries; retryCount++)
+                for (int retryCount = 0; retryCount < _maxRetries; retryCount++)
                 {
                     try
                     {
@@ -119,16 +160,47 @@ namespace RealDealsAPI.Services
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, ex.Message);
-                        if (retryCount < maxRetries - 1)
+                        if (retryCount < _maxRetries - 1)
                         {
                             // If not the last retry, delay before retrying
-                            _logger.LogInformation($"Retrying fetching movies from {endpoint} in {retryDelayMilliseconds / 1000} seconds...");
-                            Thread.Sleep(retryDelayMilliseconds);
+                            _logger.LogInformation($"Retrying fetching movies from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
+                            Thread.Sleep(_retryDelayMilliseconds);
                         }
                     }
                 }
-                return movieList;
             }
+
+            return movieList;
+        }
+
+        private async Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies)
+        {
+            foreach (var movie in movies)
+            {
+                var existingEntry = _context.Movies.Find(movie.ID);
+
+                if (existingEntry == null)
+                {
+                    _context.Movies.Add(movie);
+                    //_context.MovieDetails.Add(movie.movieDetails!);
+                    _logger.LogInformation($"Newly added {movie.Title}");
+                }
+                else
+                {
+                    _context.Entry(existingEntry).CurrentValues.SetValues(movie);
+                    var existingDetailsEntry = _context.MovieDetails.Find(movie.ID);
+                    if (existingDetailsEntry == null)
+                    {
+                        _context.MovieDetails.Add(movie.movieDetails!);
+                    }
+                    else
+                    {
+                        _context.Entry(existingDetailsEntry).CurrentValues.SetValues(movie.movieDetails!);
+                    }
+                        _logger.LogInformation($"Updated movie entry of {movie.Title}");
+                }
+            }
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

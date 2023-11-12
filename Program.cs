@@ -55,7 +55,7 @@ app.UseAuthorization();
 app.UseHangfireDashboard();
 
 //Save Movies to DB Scheduled Task
-RecurringJob.AddOrUpdate<MovieDataAccessService>("update movies database scheduled task", task => task.SaveMoviesToDBTask(), Cron.Hourly);
+//RecurringJob.AddOrUpdate<MovieDataAccessService>("update movies database scheduled task", task => task.SaveMoviesToDBTask(), Cron.Hourly);
 
 app.MapControllers();
 

@@ -9,6 +9,7 @@ namespace RealDealsAPI.Helpers
         public MappingProfiles()
         {
             CreateMap<MovieDTO, Movie>().ReverseMap();
+            CreateMap<MovieDetailsDto, MovieDetails>().ReverseMap();
         }
     }
 }
