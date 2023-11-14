@@ -38,7 +38,6 @@ export const fetchBestDealAsync = createAsyncThunk<BestDeal, string>(
     async (relatedIds, thunkAPI) => {
         try {
             const bestDeal = await agent.MovieCatalog.GetBestDeal(relatedIds);
-            debugger;
             return bestDeal;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
@@ -62,7 +61,7 @@ export const movieCatalogSlice = createSlice({
         }
     },
     extraReducers: (builder => {
-        builder.addCase(fetchMoviesAsync.pending, (state, action) => {
+        builder.addCase(fetchMoviesAsync.pending, (state) => {
             state.status = 'pendingFetchMovies'
         });
         builder.addCase(fetchMoviesAsync.fulfilled, (state, action) => {
@@ -70,7 +69,7 @@ export const movieCatalogSlice = createSlice({
             state.status = 'idle';
             state.moviesLoaded = true;
         });
-        builder.addCase(fetchMoviesAsync.rejected, (state, action) => {
+        builder.addCase(fetchMoviesAsync.rejected, (state) => {
             router.navigate('/server-error');
             state.status = 'idle';
         });
@@ -78,12 +77,10 @@ export const movieCatalogSlice = createSlice({
             state.bestDealLoadStatus = 'pendingFetchBestDeal';
         });
         builder.addCase(fetchBestDealAsync.fulfilled, (state, action) => {
-            debugger;
             state.bestDealDetails = action.payload;
             state.bestDealLoadStatus = 'idle';
         });
-        builder.addCase(fetchBestDealAsync.rejected, (state, action) => {
-            debugger;
+        builder.addCase(fetchBestDealAsync.rejected, (state) => {
             router.navigate('/not-found');
             state.status = 'idle';
         });
