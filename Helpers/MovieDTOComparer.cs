@@ -1,6 +1,6 @@
 ﻿using RealDealsAPI.DTOs;
 
-namespace RealDealsAPI.Comparers
+namespace RealDealsAPI.Helpers
 {
     public class MovieDTOComparer : IEqualityComparer<MovieDTO>
     {

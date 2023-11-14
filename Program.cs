@@ -1,11 +1,11 @@
 using Hangfire;
 using Hangfire.SQLite;
 using Microsoft.EntityFrameworkCore;
-using RealDealsAPI.Comparers;
 using RealDealsAPI.Data;
 using RealDealsAPI.Entities;
 using RealDealsAPI.Helpers;
 using RealDealsAPI.Middleware;
+using RealDealsAPI.Repositories;
 using RealDealsAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +22,8 @@ builder.Services.AddDbContext<MovieContext>(options =>
 
 });
 builder.Services.AddTransient<IMovieDataAccessService, MovieDataAccessService>();
+builder.Services.AddTransient<IExternalApiService, ExternalApiService>();
+builder.Services.AddTransient<IMovieRepository, MovieRepository>();
 builder.Services.AddTransient<MovieDTOComparer>();
 
 //Hangfire Config
