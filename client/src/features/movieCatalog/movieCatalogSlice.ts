@@ -37,7 +37,6 @@ export const fetchBestDealAsync = createAsyncThunk<BestDeal, string>(
     'catalog/fetchBestDealAsync',
     async (relatedIds, thunkAPI) => {
         try {
-            debugger;
             const bestDeal = await agent.MovieCatalog.GetBestDeal(relatedIds);
             debugger;
             return bestDeal;

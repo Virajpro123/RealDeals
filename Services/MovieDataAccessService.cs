@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RealDealsAPI.Comparers;
 using RealDealsAPI.Data;
 using RealDealsAPI.DTOs;
@@ -8,9 +10,9 @@ using System.Text.Json;
 namespace RealDealsAPI.Services
 {
 
-    public class MovieDataAccessService
+    public class MovieDataAccessService : IMovieDataAccessService
     {
-        private readonly IConfiguration _config;
+        private readonly Settings _settings;
         private readonly string _apiKey;
         private readonly ILogger<MovieDataAccessService> _logger;
         private readonly MovieDTOComparer _movieDTOComparer;
@@ -18,23 +20,33 @@ namespace RealDealsAPI.Services
         private readonly MovieContext _context;
         private readonly int _retryDelayMilliseconds;
         private readonly int _maxRetries;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public MovieDataAccessService(IConfiguration config, ILogger<MovieDataAccessService> logger, MovieDTOComparer movieDTOComparer, IMapper mapper, MovieContext context)
+        public MovieDataAccessService(Settings settings, ILogger<MovieDataAccessService> logger
+            , MovieDTOComparer movieDTOComparer, IMapper mapper, MovieContext context
+            , IHttpClientFactory httpClientFactory)
         {
-            _config = config;
-            _apiKey = _config["MovieDataAccess:ApiKey"]!;
+            _settings = settings;
+            _apiKey = settings.MovieDataAccess.ApiKey;
             _logger = logger;
             _movieDTOComparer = movieDTOComparer;
             _mapper = mapper;
             _context = context;
-            _maxRetries = Int32.Parse(_config["MovieDataAccess:maxRetries"]!);
-            _retryDelayMilliseconds = Int32.Parse(_config["MovieDataAccess:retryDelayMilliseconds"]!);
+            _maxRetries = settings.MovieDataAccess.maxRetries;
+            _retryDelayMilliseconds = settings.MovieDataAccess.retryDelayMilliseconds;
+            _httpClientFactory = httpClientFactory;
+        }
+
+        public async Task<List<Movie>> GetMovies()
+        {
+            List<Movie> availableMovies = await _context.Movies.ToListAsync();
+            return availableMovies;
         }
 
         public async Task SaveMoviesToDBTask()
         {
-            string CinemaWorldApiEndpoint = _config["MovieDataAccess:CinemaWorldApiEndpoint"]!;
-            string FilmWorldApiEndpoint = _config["MovieDataAccess:FilmWorldApiEndpoint"]!;
+            string CinemaWorldApiEndpoint = _settings.MovieDataAccess.CinemaWorldApiEndpoint;
+            string FilmWorldApiEndpoint = _settings.MovieDataAccess.FilmWorldApiEndpoint;
 
             try
             {
@@ -64,7 +76,7 @@ namespace RealDealsAPI.Services
             }
         }
 
-        public async Task AppendMovieDetails(string endpoint, List<Movie> movies)
+        private async Task AppendMovieDetails(string endpoint, List<Movie> movies)
         {
             _logger.LogInformation($"Starting retrieving Movie Details for movies from {endpoint}");
 
@@ -78,12 +90,79 @@ namespace RealDealsAPI.Services
                 }
             }
         }
-              
 
-        public async Task<MovieDetailsDto> GetMovieDetailsFromEndPoint(string endpoint, string movieID)
+        public async Task<BestDealDTO> GetBestDealDTO(List<MovieDetails> realtimeRetrievedMovieDetails, bool isRetrievedRealTime)
+        {
+            var bestDealEntry = realtimeRetrievedMovieDetails.OrderBy(movie => float.Parse(movie.Price!)).FirstOrDefault();
+            var bestDealEntryMovie = await _context.Movies.FindAsync(bestDealEntry!.ID);
+
+            return new BestDealDTO()
+            {
+                MovieDetails = _mapper.Map<MovieDetailsDto>(bestDealEntry),
+                IsRealTime = isRetrievedRealTime,
+                Provider = bestDealEntryMovie!.ProviderInfo!,
+            };
+        }
+
+        public async Task<List<MovieDetails>> GetMovieDetailsFromDatabase(string[] relatedIDsList)
+        {
+            List<MovieDetails> cachedMovieDetails = new List<MovieDetails>();
+
+            foreach (var relatedId in relatedIDsList)
+            {
+                var cachedMovieDetail = await _context.MovieDetails.FindAsync(relatedId);
+                if (cachedMovieDetail != null) { cachedMovieDetails.Add(cachedMovieDetail); }
+            }
+
+            return cachedMovieDetails;
+        }
+
+        public async Task<List<MovieDetails>> GetMovieDetailsRealTime(string[] relatedIDsList)
+        {
+            List<MovieDetails> realtimeRetrievedMovieDetails = new List<MovieDetails>();
+            foreach (var relatedId in relatedIDsList)
+            {
+                var movies = await _context.Movies.FindAsync(relatedId);
+                if (movies != null)
+                {
+                    var endpoint = movies.ProviderInfo == "CinemaWorld" ?
+                        _settings.MovieDataAccess.CinemaWorldApiEndpoint : _settings.MovieDataAccess.FilmWorldApiEndpoint;
+
+                    MovieDetailsDto moviesDetails = new MovieDetailsDto();
+
+                    moviesDetails = await GetMovieDetailsRealtimeFromEndpoint(endpoint, relatedId);
+
+                    realtimeRetrievedMovieDetails.Add(_mapper.Map<MovieDetails>(moviesDetails));
+                }
+            }
+            return realtimeRetrievedMovieDetails;
+        }
+
+        private async Task<MovieDetailsDto> GetMovieDetailsRealtimeFromEndpoint(string endpoint, string movieID)
         {
             MovieDetailsDto movieDetails = new MovieDetailsDto();
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = _httpClientFactory.CreateClient())
+            {
+                client.BaseAddress = new Uri(endpoint);
+
+                // Set the Authorization header with the bearer token
+                client.DefaultRequestHeaders.Add("x-access-token", _apiKey);
+                        HttpResponseMessage response = await client.GetAsync($"movie/{movieID}");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            string? responseContent = await response.Content.ReadAsStringAsync();
+                            movieDetails = JsonSerializer.Deserialize<MovieDetailsDto>(responseContent)!;
+                        }
+            }
+            return movieDetails;
+        }
+
+
+        private async Task<MovieDetailsDto> GetMovieDetailsFromEndPoint(string endpoint, string movieID)
+        {
+            MovieDetailsDto movieDetails = new MovieDetailsDto();
+            using (HttpClient client = _httpClientFactory.CreateClient())
             {
                 client.BaseAddress = new Uri(endpoint);
 
@@ -125,12 +204,10 @@ namespace RealDealsAPI.Services
             return movieDetails;
         }
 
-
-
         private async Task<MoviesDto> GetMoviesFromEndPoint(string endpoint)
         {
             MoviesDto movieList = new MoviesDto();
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = _httpClientFactory.CreateClient())
             {
                 client.BaseAddress = new Uri(endpoint);
 

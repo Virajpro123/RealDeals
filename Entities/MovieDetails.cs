@@ -1,5 +1,4 @@
 ﻿using RealDealsAPI.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RealDealsAPI.DTOs
 {

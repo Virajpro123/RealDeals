@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RealDealsAPI.DTOs;
 using RealDealsAPI.Entities;
-using System.Reflection.Metadata;
 
 namespace RealDealsAPI.Data
 {
