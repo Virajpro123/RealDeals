@@ -5,6 +5,9 @@ using System.Text.Json;
 
 namespace RealDealsAPI.Services
 {
+    /// <summary>
+    /// Service Connecting to external API
+    /// </summary>
     public class ExternalApiService : IExternalApiService
     {
         private readonly Settings _settings;

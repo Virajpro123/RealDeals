@@ -19,6 +19,12 @@ namespace RealDealsAPI
             return services;
         }
 
+        /// <summary>
+        /// Settings class for app settings
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="builder"></param>
+        /// <returns></returns>
         public static IServiceCollection AddSettings(this IServiceCollection services, WebApplicationBuilder builder)
         {
             var config = new ConfigurationBuilder()
@@ -30,6 +36,11 @@ namespace RealDealsAPI
             return services;
         }
 
+        /// <summary>
+        /// rate limitter config
+        /// </summary>
+        /// <param name="services"></param>
+        /// <returns></returns>
         public static IServiceCollection AddRateLimitting(this IServiceCollection services)
         {
             services.AddRateLimiter(_ => _

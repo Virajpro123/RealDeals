@@ -6,6 +6,9 @@ using RealDealsAPI.Services;
 
 namespace RealDealsAPI.Repositories
 {
+    /// <summary>
+    /// Movie DB repo
+    /// </summary>
     public class MovieRepository : IMovieRepository
     {
         private readonly ILogger<MovieRepository> _logger;

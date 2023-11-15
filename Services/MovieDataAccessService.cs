@@ -5,7 +5,9 @@ using RealDealsAPI.Repositories;
 
 namespace RealDealsAPI.Services
 {
-
+    /// <summary>
+    /// Contains the buisness logics
+    /// </summary>
     public class MovieDataAccessService : IMovieDataAccessService
     {
         private readonly ILogger<MovieDataAccessService> _logger;
@@ -23,12 +25,20 @@ namespace RealDealsAPI.Services
             _externalApiService = externalApiService;
         }
 
+        /// <summary>
+        /// Get Movies from DB
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<Movie>> GetMovies()
         {
             List<Movie> availableMovies = await _movieRepository.GetAllMovies();
             return availableMovies;
         }
 
+        /// <summary>
+        /// Save the Movies to Db which are fetched from API(Scheduled task)
+        /// </summary>
+        /// <returns></returns>
         public async Task SaveMoviesToDBTask()
         {
             try
@@ -43,6 +53,12 @@ namespace RealDealsAPI.Services
             }
         }
 
+        /// <summary>
+        /// Get the best deal
+        /// </summary>
+        /// <param name="realtimeRetrievedMovieDetails"></param>
+        /// <param name="isRetrievedRealTime"></param>
+        /// <returns></returns>
         public async Task<BestDealDTO> GetBestDealDTO(List<MovieDetails> realtimeRetrievedMovieDetails, bool isRetrievedRealTime)
         {
             var bestDealEntry = realtimeRetrievedMovieDetails.OrderBy(movie => float.Parse(movie.Price!)).FirstOrDefault();
@@ -56,6 +72,11 @@ namespace RealDealsAPI.Services
             };
         }
 
+        /// <summary>
+        /// Get the movied details for movied Ids from DB
+        /// </summary>
+        /// <param name="relatedIDsList"></param>
+        /// <returns></returns>
         public async Task<List<MovieDetails>> GetMovieDetailsFromDatabase(string[] relatedIDsList)
         {
             List<MovieDetails> cachedMovieDetails = new List<MovieDetails>();
@@ -69,11 +90,21 @@ namespace RealDealsAPI.Services
             return cachedMovieDetails;
         }
 
+        /// <summary>
+        /// Real time movied details fetch from API
+        /// </summary>
+        /// <param name="relatedIDsList"></param>
+        /// <returns></returns>
         public async Task<List<MovieDetails>> GetMovieDetailsRealTime(string[] relatedIDsList)
         {
             return await GetMovieDetailsRealTimeFromApi(relatedIDsList);
         }
 
+        /// <summary>
+        ///  Real time movied details fetch from API
+        /// </summary>
+        /// <param name="relatedIDsList"></param>
+        /// <returns></returns>
         public async Task<List<MovieDetails>> GetMovieDetailsRealTimeFromApi(string[] relatedIDsList)
         {
             List<MovieDetails> realtimeRetrievedMovieDetails = new List<MovieDetails>();

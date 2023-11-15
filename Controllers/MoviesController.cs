@@ -17,6 +17,10 @@ namespace RealDealsAPI.Controllers
             _movieDataAccessService = movieDataAccessService;
         }
 
+        /// <summary>
+        /// Movies Get Endpoint 
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<List<MovieCatalogDTO>>> GetMovies()
         {
@@ -37,6 +41,11 @@ namespace RealDealsAPI.Controllers
             return Ok(distinctMovies);
         }
 
+        /// <summary>
+        /// Movies get best deals endpoint
+        /// </summary>
+        /// <param name="relatedIds"></param>
+        /// <returns></returns>
         [HttpGet("GetBestDeal")]
         public async Task<ActionResult<BestDealDTO>> GetBestDeal(string relatedIds)
         {
