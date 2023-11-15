@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for ancient-field-6256 on 2023-11-16T05:18:43+11:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "ancient-field-6256"
+primary_region = "syd"
+
+[build]
+  image = "virajkodi/reeldeals:latest"
+
+[env]
+  ASPNETCORE_URLS="http://+:8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]

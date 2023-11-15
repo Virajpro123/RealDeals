@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AppLogo } from './AppLogo'; 
-import React from 'react';
 
 test('renders AppLogo component', () => {
   render(<AppLogo />);

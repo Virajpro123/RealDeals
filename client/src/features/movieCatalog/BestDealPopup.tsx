@@ -33,7 +33,7 @@ export default function BestDealPopup({ isOpen, popupToggle, relatedIds }: Props
     // const handleClose = () => setOpen(false);
 
 
-    const handleClose = (_event: React.MouseEvent<HTMLButtonElement>, reason: string) => {
+    const handleClose = (_event: React.MouseEvent<HTMLButtonElement>) => {
         setOpen(false);
         dispatch(clearBestDealDetails());
         popupToggle();

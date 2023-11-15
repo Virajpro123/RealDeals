@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import MovieList from './MovieList';
 import { Movie } from '../../app/models/movie';
-import React from 'react';
 
 jest.mock('../../app/store/configureStore', () => ({
   useAppSelector: jest.fn(),

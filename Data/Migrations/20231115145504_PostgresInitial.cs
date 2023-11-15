@@ -5,17 +5,33 @@
 namespace RealDealsAPI.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class MovieDetailsEntityAdded : Migration
+    public partial class PostgresInitial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Movies",
+                columns: table => new
+                {
+                    ID = table.Column<string>(type: "TEXT", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", nullable: true),
+                    Year = table.Column<string>(type: "TEXT", nullable: true),
+                    Type = table.Column<string>(type: "TEXT", nullable: true),
+                    Poster = table.Column<string>(type: "TEXT", nullable: true),
+                    ProviderInfo = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Movies", x => x.ID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MovieDetails",
                 columns: table => new
                 {
                     ID = table.Column<string>(type: "TEXT", nullable: false),
-                    Title = table.Column<string>(type: "TEXT", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", nullable: true),
                     Year = table.Column<string>(type: "TEXT", nullable: true),
                     Rated = table.Column<string>(type: "TEXT", nullable: true),
                     Released = table.Column<string>(type: "TEXT", nullable: true),
@@ -33,8 +49,7 @@ namespace RealDealsAPI.Data.Migrations
                     Rating = table.Column<string>(type: "TEXT", nullable: true),
                     Votes = table.Column<string>(type: "TEXT", nullable: true),
                     Type = table.Column<string>(type: "TEXT", nullable: true),
-                    Price = table.Column<string>(type: "TEXT", nullable: true),
-                    IsRealTime = table.Column<bool>(type: "INTEGER", nullable: true)
+                    Price = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -53,6 +68,9 @@ namespace RealDealsAPI.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "MovieDetails");
+
+            migrationBuilder.DropTable(
+                name: "Movies");
         }
     }
 }
