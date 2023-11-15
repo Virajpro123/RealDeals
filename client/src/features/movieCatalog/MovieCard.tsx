@@ -33,7 +33,7 @@ export default function MovieCard({ movie }: Props) {
                     {movie.year}
                 </Typography>
                 <CardActions style={{justifyContent: 'center'}}>
-                <Button onClick={handleOpenPopup} color='secondary' variant="contained" size="large">Check Deals</Button>
+                <Button onClick={handleOpenPopup} color='secondary' variant="contained" data-testid="getDealButton" size="large">Check Deals</Button>
                 {isPopupOpen && <BestDealPopup isOpen={isPopupOpen} popupToggle={closeOpenPopup} relatedIds={movie.relatedIDs}/>}
                 </CardActions>
             </CardContent>

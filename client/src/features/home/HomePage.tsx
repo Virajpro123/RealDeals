@@ -35,7 +35,7 @@ export default function HomePage() {
                         Welcome..!
                     </Typography>
                     <Box display='flex' justifyContent='center' sx={{ p: 4 }} >
-                        <Button onClick={() => { router.navigate('/Catalog') }} style={{ color: '#FFFFFF', background: '#1A2C50', transform: 'translate(0%, -380%)' }} size='large' variant="contained" >Go to Movie Catalog</Button>
+                        <Button onClick={() => { router.navigate('/Catalog') }} style={{ color: '#FFFFFF', background: '#1A2C50', transform: 'translate(0%, -380%)' }} size='large' variant="contained" data-testid="goToCatalog" >Go to Movie Catalog</Button>
                     </Box>
                 </>
             }

@@ -45,12 +45,10 @@ export default function BestDealPopup({ isOpen, popupToggle, relatedIds }: Props
     };
 
     useEffect(() => {
-        debugger;
         setOpen(isOpen);
     }, [isOpen]);
 
     useEffect(() => {
-        debugger;
         dispatch(fetchBestDealAsync(relatedIds))
     },[dispatch, relatedIds]);
 

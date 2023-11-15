@@ -1,6 +1,7 @@
 import { AppBar, IconButton, List, ListItem, Toolbar } from "@mui/material";
 import { NavLink } from "react-router-dom";
 import { AppLogo } from "../components/AppLogo";
+import React from "react";
 
 const midLinks = [
     { title: 'Movies', path: '/catalog' },
