@@ -1,10 +1,13 @@
 ﻿using API.Controllers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RealDealsAPI.DTOs;
 using RealDealsAPI.Services;
 
 namespace RealDealsAPI.Controllers
 {
+    [EnableRateLimiting("fixed")]
+
     public class MoviesController : BaseApiController
     {
         private readonly IMovieDataAccessService _movieDataAccessService;
@@ -52,14 +55,15 @@ namespace RealDealsAPI.Controllers
 
             if (isRetrievedRealTime)
             {
-                return realtimeRetrievedMovieDetailsDTO;
+                return Ok(realtimeRetrievedMovieDetailsDTO);
             }
             else
             {
                 var cachedMovieDetails = await _movieDataAccessService.GetMovieDetailsFromDatabase(relatedIDsList);
                 if (cachedMovieDetails.Count > 0)
                 {
-                    return await _movieDataAccessService.GetBestDealDTO(cachedMovieDetails,isRetrievedRealTime);
+                    var result =  await _movieDataAccessService.GetBestDealDTO(cachedMovieDetails,isRetrievedRealTime);
+                    return Ok(result);
                 }
             }
 

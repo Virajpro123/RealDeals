@@ -8,6 +8,6 @@ namespace RealDealsAPI.Repositories
         Task<List<Movie>> GetAllMovies();
         Task<Movie> GetMovieById(string id);
         Task<MovieDetails> GetMovieDetailsById(string id);
-        Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies, ILogger logger);
+        Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies);
     }
 }

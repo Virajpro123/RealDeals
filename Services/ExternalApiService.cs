@@ -13,8 +13,9 @@ namespace RealDealsAPI.Services
         private readonly int _retryDelayMilliseconds;
         private readonly int _maxRetries;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ExternalApiService> _logger;
 
-        public ExternalApiService(Settings settings, IMapper mapper, IHttpClientFactory httpClientFactory)
+        public ExternalApiService(Settings settings, IMapper mapper, IHttpClientFactory httpClientFactory, ILogger<ExternalApiService> logger)
         {
             _settings = settings;
             _apiKey = _settings.MovieDataAccess.ApiKey;
@@ -22,51 +23,52 @@ namespace RealDealsAPI.Services
             _maxRetries = _settings.MovieDataAccess.maxRetries;
             _retryDelayMilliseconds = _settings.MovieDataAccess.retryDelayMilliseconds;
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
 
-        public async Task<IEnumerable<Movie>> GetMoviesFromAPI(ILogger logger)
+        public async Task<IEnumerable<Movie>> GetMoviesFromAPI()
         {
             string CinemaWorldApiEndpoint = _settings.MovieDataAccess.CinemaWorldApiEndpoint;
             string FilmWorldApiEndpoint = _settings.MovieDataAccess.FilmWorldApiEndpoint;
 
-            List<Movie> filmWorldMovies = (await GetMoviesFromEndPoint(FilmWorldApiEndpoint, logger)).Movies.Select(movie =>
+            List<Movie> filmWorldMovies = (await GetMoviesFromEndPoint(FilmWorldApiEndpoint)).Movies.Select(movie =>
             {
                 movie.ProviderInfo = "FilmWorld";
                 var movieEntity = _mapper.Map<Movie>(movie);
                 return movieEntity;
             }).ToList();
 
-            List<Movie> cinemaWorldMovies = (await GetMoviesFromEndPoint(CinemaWorldApiEndpoint, logger)).Movies.Select(movie =>
+            List<Movie> cinemaWorldMovies = (await GetMoviesFromEndPoint(CinemaWorldApiEndpoint)).Movies.Select(movie =>
             {
                 movie.ProviderInfo = "CinemaWorld";
                 var movieEntity = _mapper.Map<Movie>(movie);
                 return movieEntity;
             }).ToList();
 
-            await AppendMovieDetails(CinemaWorldApiEndpoint, cinemaWorldMovies, logger);
-            await AppendMovieDetails(FilmWorldApiEndpoint, filmWorldMovies, logger);
+            await AppendMovieDetails(CinemaWorldApiEndpoint, cinemaWorldMovies);
+            await AppendMovieDetails(FilmWorldApiEndpoint, filmWorldMovies);
 
             var moviesTobeSaved = filmWorldMovies.Concat(cinemaWorldMovies.ToList());
             return moviesTobeSaved;
         }
 
-        private async Task AppendMovieDetails(string endpoint, List<Movie> movies,ILogger logger)
+        private async Task AppendMovieDetails(string endpoint, List<Movie> movies)
         {
-            logger.LogInformation($"Starting retrieving Movie Details for movies from {endpoint}");
+            _logger.LogInformation($"Starting retrieving Movie Details for movies from {endpoint}");
 
             foreach (Movie movie in movies)
             {
-                var movieDetails = await GetMovieDetailsFromEndPoint(endpoint, movie.ID, logger);
+                var movieDetails = await GetMovieDetailsFromEndPoint(endpoint, movie.ID);
                 if (movieDetails != null)
                 {
                     movie.movieDetails = _mapper.Map<MovieDetails>(movieDetails);
-                    logger.LogInformation($"Retrieved Movie Details for movie {movie.Title} from {endpoint}");
+                    _logger.LogInformation($"Retrieved Movie Details for movie {movie.Title} from {endpoint}");
                 }
             }
         }
 
-        private async Task<MovieDetailsDto> GetMovieDetailsFromEndPoint(string endpoint, string movieID, ILogger logger)
+        private async Task<MovieDetailsDto> GetMovieDetailsFromEndPoint(string endpoint, string movieID)
         {
             MovieDetailsDto movieDetails = new MovieDetailsDto();
             using (HttpClient client = _httpClientFactory.CreateClient())
@@ -92,17 +94,17 @@ namespace RealDealsAPI.Services
                             }
                             else
                             {
-                                logger.LogError($"No movie details were returned for movie {movieID} from {endpoint}");
+                                _logger.LogError($"No movie details were returned for movie {movieID} from {endpoint}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, ex.Message);
+                        _logger.LogError(ex, ex.Message);
                         if (retryCount < _maxRetries - 1)
                         {
                             // If not the last retry, delay before retrying
-                            logger.LogInformation($"Retrying fetching movie {movieID} from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
+                            _logger.LogInformation($"Retrying fetching movie {movieID} from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
                             Thread.Sleep(_retryDelayMilliseconds);
                         }
                     }
@@ -131,7 +133,7 @@ namespace RealDealsAPI.Services
             return movieDetails;
         }
 
-        public async Task<MoviesDto> GetMoviesFromEndPoint(string endpoint, ILogger logger)
+        public async Task<MoviesDto> GetMoviesFromEndPoint(string endpoint)
         {
             MoviesDto movieList = new MoviesDto();
             using (HttpClient client = _httpClientFactory.CreateClient())
@@ -157,17 +159,17 @@ namespace RealDealsAPI.Services
                             }
                             else
                             {
-                                logger.LogError($"No movies returned from {endpoint}");
+                                _logger.LogError($"No movies returned from {endpoint}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, ex.Message);
+                        _logger.LogError(ex, ex.Message);
                         if (retryCount < _maxRetries - 1)
                         {
                             // If not the last retry, delay before retrying
-                            logger.LogInformation($"Retrying fetching movies from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
+                            _logger.LogInformation($"Retrying fetching movies from {endpoint} in {_retryDelayMilliseconds / 1000} seconds...");
                             Thread.Sleep(_retryDelayMilliseconds);
                         }
                     }

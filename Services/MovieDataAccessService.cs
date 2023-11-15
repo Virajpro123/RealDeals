@@ -33,8 +33,8 @@ namespace RealDealsAPI.Services
         {
             try
             {
-                IEnumerable<Movie> moviesTobeSaved = await _externalApiService.GetMoviesFromAPI(_logger);
-                await _movieRepository.AddOrUpdateRangeMovies(moviesTobeSaved, _logger);
+                IEnumerable<Movie> moviesTobeSaved = await _externalApiService.GetMoviesFromAPI();
+                await _movieRepository.AddOrUpdateRangeMovies(moviesTobeSaved);
                 _logger.LogInformation($"Movies DB update task was successful");
             }
             catch (Exception ex)

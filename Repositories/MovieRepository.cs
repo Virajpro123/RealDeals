@@ -2,15 +2,18 @@
 using RealDealsAPI.Data;
 using RealDealsAPI.DTOs;
 using RealDealsAPI.Entities;
+using RealDealsAPI.Services;
 
 namespace RealDealsAPI.Repositories
 {
     public class MovieRepository : IMovieRepository
     {
+        private readonly ILogger<MovieRepository> _logger;
         private readonly MovieContext _context;
-        public MovieRepository(MovieContext context)
+        public MovieRepository(MovieContext context, ILogger<MovieRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<List<Movie>> GetAllMovies()
@@ -29,7 +32,7 @@ namespace RealDealsAPI.Repositories
             return await _context.MovieDetails.FindAsync(id);
         }
 
-        public async Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies, ILogger logger)
+        public async Task<bool> AddOrUpdateRangeMovies(IEnumerable<Movie> movies)
         {
             foreach (var movie in movies)
             {
@@ -39,7 +42,7 @@ namespace RealDealsAPI.Repositories
                 {
                     _context.Movies.Add(movie);
                     //_context.MovieDetails.Add(movie.movieDetails!);
-                    logger.LogInformation($"Newly added {movie.Title}");
+                    _logger.LogInformation($"Newly added {movie.Title}");
                 }
                 else
                 {
@@ -53,7 +56,7 @@ namespace RealDealsAPI.Repositories
                     {
                         _context.Entry(existingDetailsEntry).CurrentValues.SetValues(movie.movieDetails!);
                     }
-                    logger.LogInformation($"Updated movie entry of {movie.Title}");
+                    _logger.LogInformation($"Updated movie entry of {movie.Title}");
                 }
             }
             return await _context.SaveChangesAsync() > 0;

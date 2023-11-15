@@ -1,6 +1,7 @@
 using Hangfire;
 using Hangfire.SQLite;
 using Microsoft.EntityFrameworkCore;
+using RealDealsAPI;
 using RealDealsAPI.Data;
 using RealDealsAPI.Entities;
 using RealDealsAPI.Helpers;
@@ -21,10 +22,11 @@ builder.Services.AddDbContext<MovieContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 });
-builder.Services.AddTransient<IMovieDataAccessService, MovieDataAccessService>();
-builder.Services.AddTransient<IExternalApiService, ExternalApiService>();
-builder.Services.AddTransient<IMovieRepository, MovieRepository>();
-builder.Services.AddTransient<MovieDTOComparer>();
+
+
+builder.Services.AddServices();
+builder.Services.AddSettings(builder);
+builder.Services.AddRateLimitting();
 
 //Hangfire Config
 var sqliteOptions = new SQLiteStorageOptions();
@@ -39,11 +41,7 @@ builder.Services.AddHangfireServer();
 builder.Services.AddCors();
 builder.Services.AddHttpClient();
 
-var config = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true).Build();
-builder.Configuration.AddConfiguration(config);
-var settings = builder.Configuration.Get<Settings>();
-builder.Services.AddSingleton(settings);
+
 
 var app = builder.Build();
 
@@ -85,5 +83,7 @@ catch (Exception ex)
 {
     logger.LogError(ex, "A problem occurred during migration");
 }
+
+app.UseRateLimiter();
 
 app.Run();
